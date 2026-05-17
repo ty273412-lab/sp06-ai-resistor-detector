@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+    <title>SP06 Resistor Detector</title>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+</head>
+
+<body>
+
+<div class="main-container">
+
+    <div class="card">
+
+        <h1>SP06 Automatic Resistor Detector</h1>
+
+        <p class="subtitle">
+            Upload resistor image and detect resistance automatically
+        </p>
+
+        <form method="POST" enctype="multipart/form-data">
+
+            <input type="file" name="image" required>
+
+            <br><br>
+
+            <button type="submit">
+                Detect Resistance
+            </button>
+
+        </form>
+
+    </div>
+
+    {% if image_path %}
+
+    <div class="card">
+
+        <h2>Uploaded Image</h2>
+
+        <img src="{{ image_path }}" class="resistor-image">
+
+    </div>
+
+    {% endif %}
+
+    {% if detected %}
+
+    <div class="card">
+
+        <h2>Auto Detected Bands</h2>
+
+        <div class="bands-box">
+
+            {% for band in detected %}
+
+                <span class="band-tag">
+                    {{ band }}
+                </span>
+
+            {% endfor %}
+
+        </div>
+
+    </div>
+
+    <div class="card">
+
+        <h2>Correct Bands If Needed</h2>
+
+        <form method="POST">
+
+            <input type="hidden" name="image_path" value="{{ image_path }}">
+
+            <div class="dropdown-grid">
+
+                {% for i in range(4) %}
+
+                <select name="bands">
+
+                    {% for color in all_colors %}
+
+                    <option value="{{ color }}"
+                    {% if detected[i] == color %}
+                    selected
+                    {% endif %}
+                    >
+
+                        {{ color }}
+
+                    </option>
+
+                    {% endfor %}
+
+                </select>
+
+                {% endfor %}
+
+            </div>
+
+            <br>
+
+            <button type="submit">
+                Calculate Final Value
+            </button>
+
+        </form>
+
+    </div>
+
+    {% endif %}
+
+    {% if answer %}
+
+    <div class="result-card">
+
+        {{ answer }}
+
+    </div>
+
+    {% endif %}
+
+    <div class="info-card">
+
+        <h2>Project Methodology</h2>
+
+        <p>
+            This application uses image processing and HSV color-space
+            analysis to identify resistor color bands and calculate
+            resistance and tolerance values automatically.
+        </p>
+
+    </div>
+
+</div>
+
+</body>
+</html>
