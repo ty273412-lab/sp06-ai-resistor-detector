@@ -1,20 +1,3 @@
-/*
- * ResistorScan — Base styles
- * All primary styles are inline in home.html and index.html
- * This file is kept for compatibility.
- */
-
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-:root {
-    --bg:     #0a0a0f;
-    --accent: #00e5a0;
-    --text:   #e8e8f0;
-    --muted:  #6b6b80;
-}
-
-body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'Syne', 'Segoe UI', sans-serif;
-}
+/* ResistorScan SP06 — All primary styles are in the HTML templates */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{background:#05070f;color:#e8eaf6;font-family:'Syne','Segoe UI',sans-serif}

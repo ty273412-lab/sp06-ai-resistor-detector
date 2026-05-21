@@ -1,704 +1,482 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ResistorScan — Detector</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
-    <style>
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SP06 ResistorScan — Detector | IIT Madras</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 
-        :root {
-            --bg:       #0a0a0f;
-            --surface:  #12121a;
-            --surface2: #1a1a26;
-            --border:   rgba(255,255,255,0.07);
-            --accent:   #00e5a0;
-            --accent2:  #ff6b35;
-            --err:      #ff4757;
-            --text:     #e8e8f0;
-            --muted:    #6b6b80;
-            --mono:     'Space Mono', monospace;
-            --sans:     'Syne', sans-serif;
-        }
+:root{
+  --bg:#05070f;
+  --surface:#0d1020;
+  --surface2:#141628;
+  --border:rgba(255,255,255,0.07);
+  --accent:#00d4aa;
+  --accent2:#ff6b35;
+  --gold:#ffd700;
+  --err:#ff4757;
+  --text:#e8eaf6;
+  --muted:#5a6080;
+  --mono:'Space Mono',monospace;
+  --sans:'Syne',sans-serif;
+}
 
-        html, body {
-            min-height: 100%;
-            background: var(--bg);
-            color: var(--text);
-            font-family: var(--sans);
-        }
+html,body{min-height:100%;background:var(--bg);color:var(--text);font-family:var(--sans)}
+body::before{
+  content:'';position:fixed;inset:0;
+  background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px);
+  background-size:50px 50px;pointer-events:none;z-index:0;
+}
 
-        body::before {
-            content: '';
-            position: fixed; inset: 0;
-            background-image:
-                linear-gradient(var(--border) 1px, transparent 1px),
-                linear-gradient(90deg, var(--border) 1px, transparent 1px);
-            background-size: 50px 50px;
-            pointer-events: none;
-            z-index: 0;
-        }
+/* ── NAV ─────────────────────────────────── */
+nav{
+  position:sticky;top:0;z-index:100;
+  background:rgba(5,7,15,0.9);backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:16px 40px;
+}
+.nav-left{display:flex;align-items:center;gap:20px}
+.nav-logo{
+  font-family:var(--mono);font-size:13px;
+  color:var(--accent);letter-spacing:.12em;text-transform:uppercase;text-decoration:none;
+}
+.nav-logo span{color:var(--muted)}
+.nav-sep{color:var(--border);font-size:18px}
+.nav-bc{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.nav-bc .cur{color:var(--text)}
 
-        /* ── NAV ───────────────────────────────────── */
-        nav {
-            position: sticky; top: 0; z-index: 100;
-            background: rgba(10,10,15,0.85);
-            backdrop-filter: blur(12px);
-            border-bottom: 1px solid var(--border);
-            display: flex; align-items: center; justify-content: space-between;
-            padding: 18px 40px;
-        }
-        .logo {
-            font-family: var(--mono);
-            font-size: 13px;
-            color: var(--accent);
-            letter-spacing: 0.12em;
-            text-transform: uppercase;
-            text-decoration: none;
-        }
-        .logo span { color: var(--muted); }
-        .nav-breadcrumb {
-            font-family: var(--mono);
-            font-size: 11px;
-            color: var(--muted);
-        }
-        .nav-breadcrumb .sep { margin: 0 8px; }
-        .nav-breadcrumb .page { color: var(--text); }
+/* IIT badge in nav */
+.nav-iit{
+  display:flex;align-items:center;gap:8px;
+  font-family:var(--mono);font-size:10px;color:var(--gold);
+  opacity:.75;border:1px solid rgba(255,215,0,.2);
+  border-radius:20px;padding:5px 12px;
+}
 
-        /* ── LAYOUT ────────────────────────────────── */
-        .app-layout {
-            position: relative; z-index: 10;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 48px 40px 80px;
-            display: grid;
-            grid-template-columns: 380px 1fr;
-            gap: 32px;
-            align-items: start;
-        }
+/* ── LAYOUT ─────────────────────────────── */
+.layout{
+  position:relative;z-index:10;
+  max-width:1200px;margin:0 auto;
+  padding:40px 40px 80px;
+  display:grid;grid-template-columns:360px 1fr;gap:28px;align-items:start;
+}
 
-        /* ── PANEL ─────────────────────────────────── */
-        .panel {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            overflow: hidden;
-        }
-        .panel-header {
-            padding: 20px 24px;
-            border-bottom: 1px solid var(--border);
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .panel-dot {
-            width: 8px; height: 8px;
-            border-radius: 50%;
-            background: var(--accent);
-        }
-        .panel-title {
-            font-family: var(--mono);
-            font-size: 11px;
-            letter-spacing: 0.15em;
-            text-transform: uppercase;
-            color: var(--muted);
-        }
-        .panel-body { padding: 24px; }
+/* ── CARD ───────────────────────────────── */
+.card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:16px;overflow:hidden;
+}
+.card-hd{
+  padding:18px 22px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:10px;
+}
+.card-dot{width:7px;height:7px;border-radius:50%;background:var(--accent)}
+.card-title{font-family:var(--mono);font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--muted)}
+.card-bd{padding:22px}
 
-        /* ── UPLOAD ZONE ───────────────────────────── */
-        .upload-zone {
-            border: 2px dashed rgba(0,229,160,0.2);
-            border-radius: 12px;
-            padding: 40px 24px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.2s;
-            position: relative;
-            background: rgba(0,229,160,0.02);
-        }
-        .upload-zone:hover, .upload-zone.drag-over {
-            border-color: var(--accent);
-            background: rgba(0,229,160,0.06);
-        }
-        .upload-zone input[type="file"] {
-            position: absolute; inset: 0;
-            opacity: 0; cursor: pointer; width: 100%; height: 100%;
-        }
-        .upload-icon { font-size: 36px; margin-bottom: 14px; display: block; }
-        .upload-title {
-            font-size: 16px;
-            font-weight: 700;
-            color: var(--text);
-            margin-bottom: 6px;
-        }
-        .upload-hint {
-            font-family: var(--mono);
-            font-size: 11px;
-            color: var(--muted);
-            margin-bottom: 20px;
-        }
-        .preview-img {
-            width: 100%;
-            max-height: 180px;
-            object-fit: contain;
-            border-radius: 8px;
-            border: 1px solid var(--border);
-            margin-top: 16px;
-            display: none;
-        }
-        #selected-name {
-            font-family: var(--mono);
-            font-size: 11px;
-            color: var(--accent);
-            margin-top: 8px;
-            display: none;
-        }
+/* ── UPLOAD ZONE ────────────────────────── */
+.upzone{
+  border:2px dashed rgba(0,212,170,.2);border-radius:12px;
+  padding:36px 20px;text-align:center;cursor:pointer;
+  transition:all .2s;position:relative;
+  background:rgba(0,212,170,.02);
+}
+.upzone:hover,.upzone.over{border-color:var(--accent);background:rgba(0,212,170,.06)}
+.upzone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.up-icon{font-size:34px;margin-bottom:12px;display:block}
+.up-title{font-size:15px;font-weight:700;margin-bottom:4px}
+.up-hint{font-family:var(--mono);font-size:10px;color:var(--muted);margin-bottom:16px}
+#thumb{width:100%;max-height:160px;object-fit:contain;border-radius:8px;border:1px solid var(--border);margin-top:12px;display:none}
+#fname{font-family:var(--mono);font-size:10px;color:var(--accent);margin-top:6px;display:none}
 
-        .btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            font-family: var(--mono);
-            font-size: 12px;
-            font-weight: 700;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
-            border: none;
-            padding: 14px 28px;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .btn-accent {
-            background: var(--accent);
-            color: #0a0a0f;
-            width: 100%;
-            justify-content: center;
-        }
-        .btn-accent:hover { filter: brightness(1.15); transform: translateY(-1px); }
-        .btn-outline {
-            background: transparent;
-            color: var(--text);
-            border: 1px solid var(--border);
-            width: 100%;
-            justify-content: center;
-        }
-        .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+/* ── BUTTONS ────────────────────────────── */
+.btn{
+  display:inline-flex;align-items:center;gap:8px;width:100%;justify-content:center;
+  font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  border:none;padding:13px 24px;border-radius:8px;cursor:pointer;transition:all .2s;
+}
+.btn-acc{background:var(--accent);color:#05070f}
+.btn-acc:hover{filter:brightness(1.12);transform:translateY(-1px)}
+.btn-out{background:transparent;color:var(--text);border:1px solid var(--border);margin-top:10px}
+.btn-out:hover{border-color:var(--accent);color:var(--accent)}
 
-        /* ── RIGHT COLUMN ──────────────────────────── */
-        .right-col {
-            display: flex;
-            flex-direction: column;
-            gap: 24px;
-        }
+/* ── TIPS ───────────────────────────────── */
+.tip-list{list-style:none;display:flex;flex-direction:column;gap:11px}
+.tip-list li{font-family:var(--mono);font-size:11px;color:var(--muted);display:flex;gap:10px;align-items:start;line-height:1.6}
+.tip-arr{color:var(--accent);flex-shrink:0}
 
-        /* ── IMAGE PREVIEW ─────────────────────────── */
-        .image-panel img {
-            width: 100%;
-            max-height: 280px;
-            object-fit: contain;
-            display: block;
-        }
-        .image-filename {
-            font-family: var(--mono);
-            font-size: 10px;
-            color: var(--muted);
-            padding: 10px 24px;
-            border-top: 1px solid var(--border);
-        }
+/* ── RIGHT COL ──────────────────────────── */
+.right{display:flex;flex-direction:column;gap:22px}
 
-        /* ── DETECTED BANDS ────────────────────────── */
-        .bands-row {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 8px 0;
-        }
-        .band-chip {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 14px;
-            border-radius: 20px;
-            font-family: var(--mono);
-            font-size: 11px;
-            font-weight: 700;
-            letter-spacing: 0.05em;
-            border: 1px solid rgba(255,255,255,0.12);
-            text-transform: capitalize;
-        }
-        .band-swatch {
-            width: 14px; height: 14px;
-            border-radius: 3px;
-            border: 1px solid rgba(255,255,255,0.15);
-        }
-        .band-position {
-            font-family: var(--mono);
-            font-size: 10px;
-            color: var(--muted);
-            letter-spacing: 0.1em;
-        }
+/* badge */
+.status-badge{
+  display:inline-flex;align-items:center;gap:6px;
+  font-family:var(--mono);font-size:10px;letter-spacing:.1em;
+  color:var(--accent);text-transform:uppercase;
+  padding:4px 10px;border-radius:12px;
+  background:rgba(0,212,170,.1);border:1px solid rgba(0,212,170,.2);
+  margin-left:auto;
+}
+.sbdot{width:5px;height:5px;border-radius:50%;background:var(--accent);animation:blink 1.5s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
 
-        /* ── RESISTOR VISUAL ───────────────────────── */
-        .r-display {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 24px;
-            gap: 0;
-        }
-        .r-wire-d {
-            height: 3px;
-            flex: 1;
-            background: linear-gradient(90deg, transparent, #444, #777);
-        }
-        .r-wire-d.r { background: linear-gradient(90deg, #777, #444, transparent); }
-        .r-cap {
-            background: linear-gradient(135deg, #c8a870 0%, #e8c88a 40%, #d4aa70 100%);
-            border-radius: 16px;
-            height: 52px;
-            width: 240px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 16px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.15);
-            position: relative;
-            overflow: hidden;
-        }
-        .r-cap::after {
-            content: '';
-            position: absolute;
-            top: 2px; left: 20px; right: 20px;
-            height: 1px;
-            background: rgba(255,255,255,0.25);
-            border-radius: 1px;
-        }
-        .r-band-d {
-            height: 100%;
-            width: 18px;
-            border-radius: 3px;
-            flex-shrink: 0;
-        }
+/* ── UPLOADED IMAGE ─────────────────────── */
+.img-panel img{width:100%;max-height:280px;object-fit:contain;display:block}
+.img-fname{font-family:var(--mono);font-size:10px;color:var(--muted);padding:9px 22px;border-top:1px solid var(--border)}
 
-        /* ── RESULT CARD ───────────────────────────── */
-        .result-panel .panel-body {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-        }
-        .result-metric {
-            background: var(--surface2);
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            padding: 20px;
-        }
-        .result-metric.span2 {
-            grid-column: 1 / -1;
-            background: rgba(0,229,160,0.06);
-            border-color: rgba(0,229,160,0.2);
-        }
-        .metric-label {
-            font-family: var(--mono);
-            font-size: 10px;
-            letter-spacing: 0.15em;
-            color: var(--muted);
-            text-transform: uppercase;
-            margin-bottom: 8px;
-        }
-        .metric-value {
-            font-family: var(--mono);
-            font-size: 28px;
-            font-weight: 700;
-            color: var(--accent);
-            line-height: 1;
-        }
-        .metric-value.large { font-size: 36px; }
-        .metric-value.tol { color: var(--accent2); font-size: 22px; }
-        .metric-error {
-            font-family: var(--mono);
-            font-size: 13px;
-            color: var(--err);
-        }
+/* ── BANDS VISUAL ───────────────────────── */
+.r-display{display:flex;align-items:center;justify-content:center;padding:20px;gap:0}
+.rw{height:3px;flex:1;background:linear-gradient(90deg,transparent,#444,#777)}
+.rw.r{background:linear-gradient(90deg,#777,#444,transparent)}
+.rc{
+  background:linear-gradient(135deg,#c8a870,#e8c88a,#c8a870);
+  border-radius:14px;height:52px;width:230px;
+  display:flex;align-items:center;justify-content:center;gap:14px;
+  box-shadow:0 4px 20px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.15);
+}
+.rb{height:100%;width:17px;border-radius:3px;flex-shrink:0}
 
-        /* ── CORRECTION FORM ───────────────────────── */
-        .correction-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 12px;
-            margin-bottom: 20px;
-        }
-        .correction-grid.five-band {
-            grid-template-columns: repeat(5, 1fr);
-        }
-        .band-select-wrap label {
-            display: block;
-            font-family: var(--mono);
-            font-size: 10px;
-            letter-spacing: 0.1em;
-            color: var(--muted);
-            margin-bottom: 6px;
-            text-transform: uppercase;
-        }
-        select {
-            width: 100%;
-            background: var(--surface2);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            color: var(--text);
-            font-family: var(--mono);
-            font-size: 11px;
-            padding: 10px 12px;
-            cursor: pointer;
-            appearance: none;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b6b80' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
-            background-repeat: no-repeat;
-            background-position: right 10px center;
-            padding-right: 28px;
-            transition: border-color 0.2s;
-        }
-        select:focus { outline: none; border-color: var(--accent); }
-        select option { background: #1a1a26; }
+.bands-row{display:flex;flex-wrap:wrap;gap:10px;padding:8px 0}
+.b-wrap{}
+.b-pos{font-family:var(--mono);font-size:9px;color:var(--muted);margin-bottom:4px;letter-spacing:.1em;text-transform:uppercase}
+.b-chip{
+  display:inline-flex;align-items:center;gap:7px;
+  padding:7px 13px;border-radius:20px;
+  font-family:var(--mono);font-size:11px;font-weight:700;
+  letter-spacing:.04em;text-transform:capitalize;
+  border:1px solid rgba(255,255,255,.1);
+}
+.b-sw{width:13px;height:13px;border-radius:3px;border:1px solid rgba(255,255,255,.15)}
 
-        /* Color indicator strip below select */
-        .color-indicator {
-            height: 4px;
-            border-radius: 0 0 6px 6px;
-            margin-top: -1px;
-            transition: background 0.2s;
-        }
+.divider{height:1px;background:var(--border);margin:18px 0}
 
-        /* ── EMPTY STATE ───────────────────────────── */
-        .empty-state {
-            text-align: center;
-            padding: 60px 24px;
-            color: var(--muted);
-        }
-        .empty-icon { font-size: 48px; margin-bottom: 16px; opacity: 0.4; }
-        .empty-title {
-            font-size: 16px;
-            font-weight: 700;
-            color: var(--muted);
-            margin-bottom: 8px;
-        }
-        .empty-desc {
-            font-family: var(--mono);
-            font-size: 11px;
-            line-height: 1.8;
-        }
+/* ── CORRECTION FORM ────────────────────── */
+.cgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
+.cgrid.five{grid-template-columns:repeat(5,1fr)}
+.cw label{display:block;font-family:var(--mono);font-size:9px;letter-spacing:.1em;color:var(--muted);margin-bottom:5px;text-transform:uppercase}
+select{
+  width:100%;background:var(--surface2);border:1px solid var(--border);
+  border-radius:8px;color:var(--text);font-family:var(--mono);font-size:11px;
+  padding:9px 28px 9px 11px;cursor:pointer;appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='7' viewBox='0 0 11 7'%3E%3Cpath d='M1 1l4.5 4.5L10 1' stroke='%235a6080' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 9px center;
+  transition:border-color .2s;
+}
+select:focus{outline:none;border-color:var(--accent)}
+select option{background:#141628}
+.cind{height:4px;border-radius:0 0 6px 6px;margin-top:-1px;transition:background .2s}
 
-        /* ── STATUS BADGE ──────────────────────────── */
-        .status-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            font-family: var(--mono);
-            font-size: 10px;
-            letter-spacing: 0.1em;
-            color: var(--accent);
-            text-transform: uppercase;
-            padding: 4px 10px;
-            border-radius: 12px;
-            background: rgba(0,229,160,0.1);
-            border: 1px solid rgba(0,229,160,0.2);
-            margin-left: auto;
-        }
-        .status-dot {
-            width: 5px; height: 5px;
-            border-radius: 50%;
-            background: var(--accent);
-            animation: blink 1.5s ease-in-out infinite;
-        }
-        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+/* ── RESULT ─────────────────────────────── */
+.result-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.rm{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:18px}
+.rm.span2{grid-column:1/-1;background:rgba(0,212,170,.06);border-color:rgba(0,212,170,.2)}
+.rm.err{background:rgba(255,71,87,.05);border-color:rgba(255,71,87,.2);grid-column:1/-1}
+.rm-lbl{font-family:var(--mono);font-size:9px;letter-spacing:.15em;color:var(--muted);text-transform:uppercase;margin-bottom:8px}
+.rm-val{font-family:var(--mono);font-size:30px;font-weight:700;color:var(--accent);line-height:1}
+.rm-val.big{font-size:36px}
+.rm-val.tol{color:var(--accent2);font-size:22px}
+.rm-val.sm{color:var(--muted);font-size:18px}
+.rm-err{font-family:var(--mono);font-size:13px;color:var(--err)}
 
-        .divider {
-            height: 1px;
-            background: var(--border);
-            margin: 20px 0;
-        }
+/* ── EMPTY STATE ────────────────────────── */
+.empty{text-align:center;padding:56px 22px}
+.empty-ic{font-size:44px;opacity:.3;margin-bottom:14px}
+.empty-t{font-size:15px;font-weight:700;color:var(--muted);margin-bottom:8px}
+.empty-d{font-family:var(--mono);font-size:11px;color:var(--muted);line-height:1.8}
 
-        /* ── ANIMATIONS ────────────────────────────── */
-        .fade-in { animation: fadeIn 0.4s ease forwards; }
-        @keyframes fadeIn { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:none} }
+.fade{animation:fadeUp .4s ease both}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 
-        /* ── RESPONSIVE ────────────────────────────── */
-        @media (max-width: 960px) {
-            .app-layout { grid-template-columns: 1fr; padding: 24px; }
-            .correction-grid { grid-template-columns: repeat(2, 1fr); }
-            .result-panel .panel-body { grid-template-columns: 1fr; }
-        }
-    </style>
+@media(max-width:900px){
+  nav{padding:14px 20px}
+  .layout{grid-template-columns:1fr;padding:20px}
+  .result-grid{grid-template-columns:1fr}
+  .cgrid,.cgrid.five{grid-template-columns:repeat(2,1fr)}
+  .nav-iit{display:none}
+}
+</style>
 </head>
 <body>
 
 <!-- NAV -->
 <nav>
-    <a href="/" class="logo">Resistor<span>//</span>Scan</a>
-    <div class="nav-breadcrumb">
-        <span>Home</span>
-        <span class="sep">/</span>
-        <span class="page">Detector</span>
-    </div>
+  <div class="nav-left">
+    <a href="/" class="nav-logo">Resistor<span>//</span>Scan</a>
+    <span class="nav-sep">|</span>
+    <div class="nav-bc">Home <span style="margin:0 6px">›</span> <span class="cur">Detector</span></div>
+  </div>
+  <div class="nav-iit">
+    <svg viewBox="0 0 100 100" width="18" height="18" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="50" cy="50" r="47" fill="none" stroke="#FFD700" stroke-width="3.5"/>
+      <circle cx="50" cy="50" r="38" fill="#1a1500"/>
+      <ellipse cx="50" cy="60" rx="12" ry="8" fill="#FFD700"/>
+      <circle cx="50" cy="44" r="9" fill="#FFD700"/>
+      <circle cx="50" cy="44" r="12" fill="none" stroke="#FFD700" stroke-width="2.5"/>
+    </svg>
+    IIT Madras · SP06
+  </div>
 </nav>
 
-<div class="app-layout">
+<div class="layout">
 
-    <!-- ── LEFT: UPLOAD PANEL ── -->
-    <div>
-        <div class="panel" style="margin-bottom: 24px;">
-            <div class="panel-header">
-                <div class="panel-dot"></div>
-                <div class="panel-title">Upload Resistor Image</div>
-            </div>
-            <div class="panel-body">
-                <form method="POST" enctype="multipart/form-data" id="upload-form">
-                    <div class="upload-zone" id="drop-zone">
-                        <input type="file" name="image" accept="image/*" id="file-input" required>
-                        <span class="upload-icon">📷</span>
-                        <div class="upload-title">Drop image here</div>
-                        <div class="upload-hint">or click to browse · PNG, JPG, JPEG</div>
-                        <img id="thumb" class="preview-img" alt="preview">
-                        <div id="selected-name"></div>
-                    </div>
-                    <div style="margin-top:16px">
-                        <button type="submit" class="btn btn-accent">
-                            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path stroke-linecap="round" d="M21 21l-4.35-4.35"/></svg>
-                            Detect Bands
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
+  <!-- LEFT: UPLOAD + TIPS -->
+  <div style="display:flex;flex-direction:column;gap:22px">
 
-        <!-- Tips panel -->
-        <div class="panel">
-            <div class="panel-header">
-                <div class="panel-dot" style="background: var(--accent2)"></div>
-                <div class="panel-title">Tips for Best Results</div>
-            </div>
-            <div class="panel-body">
-                <ul style="list-style:none; display:flex; flex-direction:column; gap:12px;">
-                    <li style="font-family:var(--mono); font-size:11px; color:var(--muted); display:flex; gap:10px; align-items:start;">
-                        <span style="color:var(--accent);flex-shrink:0">→</span>
-                        Use a plain white or neutral background
-                    </li>
-                    <li style="font-family:var(--mono); font-size:11px; color:var(--muted); display:flex; gap:10px; align-items:start;">
-                        <span style="color:var(--accent);flex-shrink:0">→</span>
-                        Good lighting; avoid harsh shadows
-                    </li>
-                    <li style="font-family:var(--mono); font-size:11px; color:var(--muted); display:flex; gap:10px; align-items:start;">
-                        <span style="color:var(--accent);flex-shrink:0">→</span>
-                        Lay the resistor horizontally in frame
-                    </li>
-                    <li style="font-family:var(--mono); font-size:11px; color:var(--muted); display:flex; gap:10px; align-items:start;">
-                        <span style="color:var(--accent);flex-shrink:0">→</span>
-                        Keep the resistor centred & in focus
-                    </li>
-                    <li style="font-family:var(--mono); font-size:11px; color:var(--muted); display:flex; gap:10px; align-items:start;">
-                        <span style="color:var(--accent);flex-shrink:0">→</span>
-                        Use manual correction if bands are wrong
-                    </li>
-                </ul>
-            </div>
-        </div>
+    <div class="card">
+      <div class="card-hd">
+        <div class="card-dot"></div>
+        <div class="card-title">Upload Resistor Image</div>
+      </div>
+      <div class="card-bd">
+        <form method="POST" enctype="multipart/form-data" id="uform">
+          <div class="upzone" id="dz">
+            <input type="file" name="image" accept="image/*" id="fi" required>
+            <span class="up-icon">📷</span>
+            <div class="up-title">Drop image here</div>
+            <div class="up-hint">or click to browse · PNG · JPG · JPEG</div>
+            <img id="thumb" alt="preview">
+            <div id="fname"></div>
+          </div>
+          <div style="margin-top:14px">
+            <button type="submit" class="btn btn-acc">
+              <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path stroke-linecap="round" d="M21 21l-4.35-4.35"/></svg>
+              Detect Bands
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
 
-    <!-- ── RIGHT: RESULTS ── -->
-    <div class="right-col">
+    <div class="card">
+      <div class="card-hd">
+        <div class="card-dot" style="background:var(--accent2)"></div>
+        <div class="card-title">Tips for Best Results</div>
+      </div>
+      <div class="card-bd">
+        <ul class="tip-list">
+          <li><span class="tip-arr">→</span>Use a white or neutral background</li>
+          <li><span class="tip-arr">→</span>Good, even lighting — no harsh shadows</li>
+          <li><span class="tip-arr">→</span>Lay the resistor flat &amp; horizontal</li>
+          <li><span class="tip-arr">→</span>Keep it centred and in sharp focus</li>
+          <li><span class="tip-arr">→</span>Use manual correction if bands are wrong</li>
+        </ul>
+      </div>
+    </div>
 
-        {% if image_path %}
-        <!-- Uploaded image -->
-        <div class="panel image-panel fade-in">
-            <div class="panel-header">
-                <div class="panel-dot" style="background:#a78bfa"></div>
-                <div class="panel-title">Uploaded Image</div>
-                {% if detected %}
-                <div class="status-badge">
-                    <div class="status-dot"></div>
-                    {{ detected|length }} bands detected
-                </div>
-                {% endif %}
-            </div>
-            <img src="/{{ image_path }}" alt="Uploaded resistor">
-            <div class="image-filename">{{ image_path.split('/')[-1] if '/' in image_path else image_path }}</div>
+    <!-- IIT Madras card -->
+    <div class="card">
+      <div class="card-hd">
+        <div class="card-dot" style="background:var(--gold)"></div>
+        <div class="card-title">Project Info</div>
+      </div>
+      <div class="card-bd" style="display:flex;align-items:center;gap:16px">
+        <svg viewBox="0 0 100 100" width="52" height="52" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0">
+          <circle cx="50" cy="50" r="47" fill="none" stroke="#FFD700" stroke-width="2.5"/>
+          <circle cx="50" cy="50" r="41" fill="none" stroke="#FFD700" stroke-width="1"/>
+          <circle cx="50" cy="50" r="38" fill="#1a1500"/>
+          <ellipse cx="50" cy="60" rx="13" ry="9" fill="#FFD700"/>
+          <circle cx="50" cy="44" r="10" fill="#FFD700"/>
+          <circle cx="50" cy="44" r="13" fill="none" stroke="#FFD700" stroke-width="2.5"/>
+          <circle cx="46.5" cy="42.5" r="1.5" fill="#1a1500"/>
+          <circle cx="53.5" cy="42.5" r="1.5" fill="#1a1500"/>
+          <ellipse cx="50" cy="46" rx="1.5" ry="1" fill="#1a1500"/>
+          <ellipse cx="40" cy="67" rx="4" ry="2.5" fill="#FFD700"/>
+          <ellipse cx="60" cy="67" rx="4" ry="2.5" fill="#FFD700"/>
+          <path d="M63 60 Q73 52 70 45 Q68 40 65 44" fill="none" stroke="#FFD700" stroke-width="2.5" stroke-linecap="round"/>
+          <circle cx="65" cy="44" r="3" fill="#FFD700"/>
+          <text x="50" y="18" text-anchor="middle" font-family="serif" font-size="7" font-weight="bold" fill="#FFD700" letter-spacing="1.5">IIT MADRAS</text>
+          <text x="50" y="85" text-anchor="middle" font-family="serif" font-size="6" fill="#FFD700" letter-spacing="1">EST. 1959</text>
+          <text x="22" y="54" font-size="6" fill="#FFD700">✦</text>
+          <text x="72" y="54" font-size="6" fill="#FFD700">✦</text>
+        </svg>
+        <div>
+          <div style="font-family:var(--mono);font-size:12px;color:var(--gold);font-weight:700;margin-bottom:4px">IIT Madras</div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--muted);line-height:1.7">SP06 · Electronics Lab<br>Computer Vision Project<br>2025–26</div>
         </div>
-        {% endif %}
+      </div>
+    </div>
 
+  </div>
+
+  <!-- RIGHT: RESULTS -->
+  <div class="right">
+
+    {% if image_path %}
+    <div class="card img-panel fade">
+      <div class="card-hd">
+        <div class="card-dot" style="background:#a78bfa"></div>
+        <div class="card-title">Uploaded Image</div>
         {% if detected %}
-        <!-- Detected bands visualisation -->
-        <div class="panel fade-in">
-            <div class="panel-header">
-                <div class="panel-dot" style="background:#FDD835"></div>
-                <div class="panel-title">Detected Color Bands</div>
-            </div>
-            <div class="panel-body">
-
-                <!-- Resistor body preview -->
-                <div class="r-display">
-                    <div class="r-wire-d"></div>
-                    <div class="r-cap">
-                        {% for band in detected %}
-                        <div class="r-band-d" style="background: {{ color_hex.get(band, '#888') }};"></div>
-                        {% endfor %}
-                    </div>
-                    <div class="r-wire-d r"></div>
-                </div>
-
-                <div class="divider"></div>
-
-                <!-- Band chips -->
-                <div class="bands-row" style="flex-wrap:wrap; gap:10px;">
-                    {% for band in detected %}
-                    <div>
-                        <div class="band-position" style="margin-bottom:4px;">Band {{ loop.index }}</div>
-                        <div class="band-chip" style="background: {{ color_hex.get(band,'#333') }}22; color: {{ color_hex.get(band,'#aaa') }};">
-                            <span class="band-swatch" style="background: {{ color_hex.get(band,'#888') }};"></span>
-                            {{ band }}
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-
-            </div>
-        </div>
-
-        <!-- Correction form -->
-        <div class="panel fade-in">
-            <div class="panel-header">
-                <div class="panel-dot" style="background:var(--accent2)"></div>
-                <div class="panel-title">Correct Bands &amp; Calculate</div>
-            </div>
-            <div class="panel-body">
-                <form method="POST" id="calc-form">
-                    <input type="hidden" name="image_path" value="{{ image_path }}">
-
-                    <div class="correction-grid {% if detected|length >= 5 %}five-band{% endif %}">
-                        {% for i in range([detected|length, 5]|min if detected|length > 4 else 4) %}
-                        <div class="band-select-wrap">
-                            <label>Band {{ i+1 }}{% if i == (detected|length - 1) or (detected|length < 4 and i == 3) %} (Tol.){% elif detected|length >= 5 and i == 4 %} (Tol.){% elif detected|length >= 5 and i == 3 %} (Mult.){% elif i == 2 %} (Mult.){% endif %}</label>
-                            <select name="bands" class="color-select" data-idx="{{ i }}">
-                                {% for color in all_colors %}
-                                <option value="{{ color }}"
-                                    {% if detected[i] == color if i < detected|length else '' %}
-                                    selected
-                                    {% endif %}
-                                    data-hex="{{ color_hex.get(color, '#888') }}"
-                                >{{ color }}</option>
-                                {% endfor %}
-                            </select>
-                            <div class="color-indicator" id="ind-{{ i }}"
-                                style="background: {{ color_hex.get(detected[i], '#333') if i < detected|length else '#333' }};"></div>
-                        </div>
-                        {% endfor %}
-                    </div>
-
-                    <button type="submit" class="btn btn-accent">
-                        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 11h.01M12 11h.01M15 11h.01M4 19h16a2 2 0 002-2V7a2 2 0 00-2-2H4a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
-                        Calculate Resistance
-                    </button>
-                </form>
-            </div>
+        <div class="status-badge">
+          <div class="sbdot"></div>{{ detected|length }} bands found
         </div>
         {% endif %}
-
-        {% if result %}
-        <!-- Result -->
-        <div class="panel result-panel fade-in">
-            <div class="panel-header">
-                <div class="panel-dot" style="background:var(--accent)"></div>
-                <div class="panel-title">Result</div>
-                {% if result.success %}
-                <div class="status-badge">✓ Calculated</div>
-                {% endif %}
-            </div>
-            <div class="panel-body">
-                {% if result.success %}
-                <div class="result-metric span2">
-                    <div class="metric-label">Resistance Value</div>
-                    <div class="metric-value large">{{ result.value_text }}</div>
-                </div>
-                <div class="result-metric">
-                    <div class="metric-label">Tolerance</div>
-                    <div class="metric-value tol">{{ result.tolerance }}</div>
-                </div>
-                <div class="result-metric">
-                    <div class="metric-label">Band Count</div>
-                    <div class="metric-value" style="font-size:22px; color:var(--muted)">{{ result.band_count }}-Band</div>
-                </div>
-                {% else %}
-                <div class="result-metric span2" style="background:rgba(255,71,87,0.06); border-color:rgba(255,71,87,0.2);">
-                    <div class="metric-label">Error</div>
-                    <div class="metric-error">{{ result.error }}</div>
-                </div>
-                {% endif %}
-            </div>
-        </div>
-        {% endif %}
-
-        {% if not image_path %}
-        <!-- Empty state -->
-        <div class="panel">
-            <div class="empty-state">
-                <div class="empty-icon">🔬</div>
-                <div class="empty-title">No image uploaded yet</div>
-                <div class="empty-desc">
-                    Upload a resistor image on the left<br>
-                    to begin automatic detection.
-                </div>
-            </div>
-        </div>
-        {% endif %}
-
+      </div>
+      <img src="/{{ image_path }}" alt="Resistor">
+      <div class="img-fname">
+        {{ image_path.split('/')[-1] if '/' in image_path else image_path }}
+      </div>
     </div>
+    {% endif %}
+
+    {% if detected %}
+    <!-- Band visualisation -->
+    <div class="card fade">
+      <div class="card-hd">
+        <div class="card-dot" style="background:#FDD835"></div>
+        <div class="card-title">Detected Color Bands</div>
+      </div>
+      <div class="card-bd">
+        <!-- Resistor body -->
+        <div class="r-display">
+          <div class="rw"></div>
+          <div class="rc">
+            {% for band in detected %}
+            <div class="rb" style="background:{{ color_hex.get(band,'#888888') }}"></div>
+            {% endfor %}
+          </div>
+          <div class="rw r"></div>
+        </div>
+        <div class="divider"></div>
+        <!-- Chips -->
+        <div class="bands-row">
+          {% for band in detected %}
+          <div class="b-wrap">
+            <div class="b-pos">Band {{ loop.index }}</div>
+            <div class="b-chip" style="background:{{ color_hex.get(band,'#333') }}22;color:{{ color_hex.get(band,'#aaa') }}">
+              <span class="b-sw" style="background:{{ color_hex.get(band,'#888') }}"></span>
+              {{ band }}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Correction + Calculate -->
+    <div class="card fade">
+      <div class="card-hd">
+        <div class="card-dot" style="background:var(--accent2)"></div>
+        <div class="card-title">Correct Bands &amp; Calculate</div>
+      </div>
+      <div class="card-bd">
+        <form method="POST" id="cform">
+          <input type="hidden" name="image_path" value="{{ image_path }}">
+          {% set nb = [detected|length, 5]|min if detected|length > 4 else 4 %}
+          <div class="cgrid {% if nb >= 5 %}five{% endif %}">
+            {% for i in range(nb) %}
+            <div class="cw">
+              <label>
+                Band {{ i+1 }}
+                {% if nb >= 5 %}
+                  {% if i < 3 %}(Digit){% elif i == 3 %}(Mult.){% else %}(Tol.){% endif %}
+                {% else %}
+                  {% if i < 2 %}(Digit){% elif i == 2 %}(Mult.){% else %}(Tol.){% endif %}
+                {% endif %}
+              </label>
+              <select name="bands" class="csel" data-i="{{ i }}">
+                {% for color in all_colors %}
+                <option value="{{ color }}"
+                  {% if i < detected|length and detected[i] == color %}selected{% endif %}
+                  data-hex="{{ color_hex.get(color,'#888') }}">
+                  {{ color }}
+                </option>
+                {% endfor %}
+              </select>
+              <div class="cind" id="ci{{ i }}"
+                style="background:{{ color_hex.get(detected[i],'#333') if i < detected|length else '#333' }}">
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+          <button type="submit" class="btn btn-acc">
+            <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 11h.01M12 11h.01M15 11h.01M4 19h16a2 2 0 002-2V7a2 2 0 00-2-2H4a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+            Calculate Resistance
+          </button>
+        </form>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if result %}
+    <!-- Result display -->
+    <div class="card fade">
+      <div class="card-hd">
+        <div class="card-dot" style="background:var(--accent)"></div>
+        <div class="card-title">Result</div>
+        {% if result.success %}
+        <div class="status-badge">✓ Calculated</div>
+        {% endif %}
+      </div>
+      <div class="card-bd">
+        <div class="result-grid">
+          {% if result.success %}
+          <div class="rm span2">
+            <div class="rm-lbl">Resistance Value</div>
+            <div class="rm-val big">{{ result.value_text }}</div>
+          </div>
+          <div class="rm">
+            <div class="rm-lbl">Tolerance</div>
+            <div class="rm-val tol">{{ result.tolerance }}</div>
+          </div>
+          <div class="rm">
+            <div class="rm-lbl">Band Configuration</div>
+            <div class="rm-val sm">{{ result.band_count }}-Band</div>
+          </div>
+          {% else %}
+          <div class="rm err">
+            <div class="rm-lbl">Detection Error</div>
+            <div class="rm-err">{{ result.error }}</div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if not image_path %}
+    <div class="card">
+      <div class="empty">
+        <div class="empty-ic">🔬</div>
+        <div class="empty-t">No image uploaded yet</div>
+        <div class="empty-d">Upload a resistor image on the left<br>to begin automatic band detection.</div>
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
 </div>
 
 <script>
-    // ── Drag and drop + preview ──────────────────────────────────
-    const dropZone  = document.getElementById('drop-zone');
-    const fileInput = document.getElementById('file-input');
-    const thumb     = document.getElementById('thumb');
-    const nameTag   = document.getElementById('selected-name');
+  // Drag & drop + preview
+  const dz=document.getElementById('dz'),fi=document.getElementById('fi');
+  const thumb=document.getElementById('thumb'),fname=document.getElementById('fname');
+  function preview(f){
+    if(!f)return;
+    fname.textContent=f.name;fname.style.display='block';
+    const r=new FileReader();
+    r.onload=e=>{thumb.src=e.target.result;thumb.style.display='block'};
+    r.readAsDataURL(f);
+  }
+  fi.addEventListener('change',()=>preview(fi.files[0]));
+  dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('over')});
+  dz.addEventListener('dragleave',()=>dz.classList.remove('over'));
+  dz.addEventListener('drop',e=>{
+    e.preventDefault();dz.classList.remove('over');
+    const f=e.dataTransfer.files[0];
+    if(f){const dt=new DataTransfer();dt.items.add(f);fi.files=dt.files;preview(f)}
+  });
 
-    function showPreview(file) {
-        if (!file) return;
-        nameTag.textContent = file.name;
-        nameTag.style.display = 'block';
-        const reader = new FileReader();
-        reader.onload = e => {
-            thumb.src = e.target.result;
-            thumb.style.display = 'block';
-        };
-        reader.readAsDataURL(file);
-    }
-
-    fileInput.addEventListener('change', () => showPreview(fileInput.files[0]));
-
-    dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
-    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
-    dropZone.addEventListener('drop', e => {
-        e.preventDefault();
-        dropZone.classList.remove('drag-over');
-        const file = e.dataTransfer.files[0];
-        if (file) {
-            const dt = new DataTransfer();
-            dt.items.add(file);
-            fileInput.files = dt.files;
-            showPreview(file);
-        }
-    });
-
-    // ── Color indicator under selects ─────────────────────────────
-    const colorHex = {{ color_hex | tojson }};
-
-    document.querySelectorAll('.color-select').forEach(sel => {
-        const idx = sel.dataset.idx;
-        const ind = document.getElementById('ind-' + idx);
-        sel.addEventListener('change', () => {
-            if (ind) ind.style.background = colorHex[sel.value] || '#333';
-        });
-    });
+  // Live color indicators under selects
+  const hex={{ color_hex|tojson }};
+  document.querySelectorAll('.csel').forEach(s=>{
+    const ind=document.getElementById('ci'+s.dataset.i);
+    s.addEventListener('change',()=>{if(ind)ind.style.background=hex[s.value]||'#333'});
+  });
 </script>
 </body>
 </html>
