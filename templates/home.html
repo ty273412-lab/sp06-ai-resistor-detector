@@ -1,22 +1,617 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>SP06 Resistor App</title>
-    <link rel="stylesheet" href="/static/css/style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ResistorScan — AI Color Band Detector</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg:       #0a0a0f;
+            --surface:  #12121a;
+            --border:   rgba(255,255,255,0.07);
+            --accent:   #00e5a0;
+            --accent2:  #ff6b35;
+            --text:     #e8e8f0;
+            --muted:    #6b6b80;
+            --mono:     'Space Mono', monospace;
+            --sans:     'Syne', sans-serif;
+        }
+
+        html, body {
+            height: 100%;
+            background: var(--bg);
+            color: var(--text);
+            font-family: var(--sans);
+            overflow-x: hidden;
+        }
+
+        /* ── Grid background ─────────────────────────── */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(var(--border) 1px, transparent 1px),
+                linear-gradient(90deg, var(--border) 1px, transparent 1px);
+            background-size: 60px 60px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* ── Glowing orbs ────────────────────────────── */
+        .orb {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(80px);
+            pointer-events: none;
+            z-index: 0;
+        }
+        .orb-1 {
+            width: 500px; height: 500px;
+            background: rgba(0, 229, 160, 0.12);
+            top: -100px; left: -100px;
+            animation: drift1 12s ease-in-out infinite alternate;
+        }
+        .orb-2 {
+            width: 400px; height: 400px;
+            background: rgba(255, 107, 53, 0.10);
+            bottom: -80px; right: -80px;
+            animation: drift2 14s ease-in-out infinite alternate;
+        }
+        @keyframes drift1 { to { transform: translate(60px, 80px); } }
+        @keyframes drift2 { to { transform: translate(-60px, -50px); } }
+
+        /* ── Nav ─────────────────────────────────────── */
+        nav {
+            position: relative; z-index: 10;
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 28px 60px;
+            border-bottom: 1px solid var(--border);
+        }
+        .logo {
+            font-family: var(--mono);
+            font-size: 15px;
+            color: var(--accent);
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+        .logo span { color: var(--muted); }
+        .nav-tag {
+            font-family: var(--mono);
+            font-size: 11px;
+            color: var(--muted);
+            border: 1px solid var(--border);
+            padding: 6px 14px;
+            border-radius: 20px;
+            letter-spacing: 0.1em;
+        }
+
+        /* ── Hero ────────────────────────────────────── */
+        .hero {
+            position: relative; z-index: 10;
+            min-height: calc(100vh - 100px);
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            align-items: center;
+            gap: 80px;
+            padding: 80px 60px;
+            max-width: 1300px;
+            margin: 0 auto;
+        }
+
+        .hero-left { animation: fadeUp 0.8s ease forwards; }
+
+        .kicker {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-family: var(--mono);
+            font-size: 11px;
+            letter-spacing: 0.15em;
+            color: var(--accent);
+            text-transform: uppercase;
+            margin-bottom: 28px;
+        }
+        .kicker::before {
+            content: '';
+            display: block;
+            width: 30px; height: 1px;
+            background: var(--accent);
+        }
+
+        h1 {
+            font-size: clamp(42px, 5vw, 68px);
+            font-weight: 800;
+            line-height: 1.05;
+            letter-spacing: -0.02em;
+            margin-bottom: 24px;
+        }
+        h1 em {
+            font-style: normal;
+            color: var(--accent);
+        }
+
+        .hero-desc {
+            font-size: 17px;
+            color: var(--muted);
+            line-height: 1.7;
+            max-width: 480px;
+            margin-bottom: 48px;
+            font-family: var(--mono);
+        }
+
+        .cta-group {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .btn-primary {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: var(--accent);
+            color: #0a0a0f;
+            font-family: var(--mono);
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            text-decoration: none;
+            padding: 16px 32px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .btn-primary::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: white;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .btn-primary:hover::after { opacity: 0.15; }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(0,229,160,0.3); }
+
+        .btn-secondary {
+            font-family: var(--mono);
+            font-size: 12px;
+            color: var(--muted);
+            letter-spacing: 0.05em;
+            text-decoration: none;
+            border: 1px solid var(--border);
+            padding: 15px 28px;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+        .btn-secondary:hover { color: var(--text); border-color: var(--muted); }
+
+        /* ── Resistor Visual ─────────────────────────── */
+        .hero-right {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 32px;
+            animation: fadeUp 0.8s 0.2s ease both;
+        }
+
+        .resistor-showcase {
+            width: 100%;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 48px 40px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 32px;
+            position: relative;
+            overflow: hidden;
+        }
+        .resistor-showcase::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--accent), transparent);
+        }
+
+        .showcase-label {
+            font-family: var(--mono);
+            font-size: 10px;
+            letter-spacing: 0.2em;
+            color: var(--muted);
+            text-transform: uppercase;
+        }
+
+        /* Animated resistor SVG */
+        .r-body {
+            display: flex;
+            align-items: center;
+            gap: 0;
+            width: 100%;
+            justify-content: center;
+        }
+        .r-wire {
+            height: 3px;
+            flex: 1;
+            background: linear-gradient(90deg, transparent, #555, #888);
+            border-radius: 2px;
+        }
+        .r-wire.right {
+            background: linear-gradient(90deg, #888, #555, transparent);
+        }
+        .r-capsule {
+            background: linear-gradient(135deg, #c8a870, #e8c88a, #c8a870);
+            border-radius: 18px;
+            width: 260px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 18px;
+            position: relative;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.2);
+        }
+        .r-band {
+            width: 22px;
+            height: 100%;
+            border-radius: 4px;
+            position: relative;
+        }
+        .r-band.anim { animation: bandPop 2s ease-in-out infinite; }
+        .r-band:nth-child(1) { animation-delay: 0s; }
+        .r-band:nth-child(2) { animation-delay: 0.15s; }
+        .r-band:nth-child(3) { animation-delay: 0.30s; }
+        .r-band:nth-child(4) { animation-delay: 0.45s; }
+
+        @keyframes bandPop {
+            0%, 100% { filter: brightness(1); }
+            50% { filter: brightness(1.4) drop-shadow(0 0 6px currentColor); }
+        }
+
+        .r-value {
+            font-family: var(--mono);
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--accent);
+            letter-spacing: 0.05em;
+            animation: pulse 3s ease-in-out infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        /* ── Feature pills ───────────────────────────── */
+        .features {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .feat-pill {
+            font-family: var(--mono);
+            font-size: 11px;
+            color: var(--text);
+            background: rgba(255,255,255,0.04);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 8px 16px;
+            letter-spacing: 0.05em;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .feat-pill .dot {
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            background: var(--accent);
+        }
+        .feat-pill:nth-child(2) .dot { background: var(--accent2); }
+        .feat-pill:nth-child(3) .dot { background: #a78bfa; }
+
+        /* ── Stats bar ───────────────────────────────── */
+        .stats-bar {
+            position: relative; z-index: 10;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            border-top: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+            margin: 0 60px;
+            max-width: 1180px;
+        }
+        .stat-item {
+            padding: 32px 40px;
+            border-right: 1px solid var(--border);
+        }
+        .stat-item:last-child { border-right: none; }
+        .stat-num {
+            font-family: var(--mono);
+            font-size: 36px;
+            font-weight: 700;
+            color: var(--accent);
+            line-height: 1;
+            margin-bottom: 6px;
+        }
+        .stat-label {
+            font-family: var(--mono);
+            font-size: 11px;
+            color: var(--muted);
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+
+        /* ── How it works ────────────────────────────── */
+        .how-section {
+            position: relative; z-index: 10;
+            max-width: 1300px;
+            margin: 80px auto;
+            padding: 0 60px;
+        }
+        .section-label {
+            font-family: var(--mono);
+            font-size: 11px;
+            letter-spacing: 0.2em;
+            color: var(--accent);
+            text-transform: uppercase;
+            margin-bottom: 20px;
+        }
+        .section-title {
+            font-size: 36px;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            margin-bottom: 48px;
+        }
+
+        .steps-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2px;
+        }
+        .step-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            padding: 40px 36px;
+            position: relative;
+            transition: border-color 0.2s;
+        }
+        .step-card:hover { border-color: rgba(0,229,160,0.3); }
+        .step-num {
+            font-family: var(--mono);
+            font-size: 48px;
+            font-weight: 700;
+            color: rgba(255,255,255,0.04);
+            line-height: 1;
+            margin-bottom: 16px;
+        }
+        .step-icon {
+            font-size: 28px;
+            margin-bottom: 16px;
+            display: block;
+        }
+        .step-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        .step-desc {
+            font-family: var(--mono);
+            font-size: 12px;
+            color: var(--muted);
+            line-height: 1.8;
+        }
+
+        /* ── Color band reference ────────────────────── */
+        .ref-section {
+            position: relative; z-index: 10;
+            max-width: 1300px;
+            margin: 0 auto 80px;
+            padding: 0 60px;
+        }
+        .color-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: var(--mono);
+            font-size: 12px;
+        }
+        .color-table th {
+            text-align: left;
+            padding: 14px 20px;
+            border-bottom: 1px solid var(--border);
+            color: var(--muted);
+            font-weight: 400;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            font-size: 10px;
+        }
+        .color-table td {
+            padding: 12px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.03);
+            color: var(--text);
+        }
+        .color-table tr:hover td { background: rgba(255,255,255,0.02); }
+        .color-swatch {
+            display: inline-block;
+            width: 20px; height: 20px;
+            border-radius: 4px;
+            border: 1px solid rgba(255,255,255,0.1);
+            vertical-align: middle;
+            margin-right: 10px;
+        }
+
+        /* ── Footer ──────────────────────────────────── */
+        footer {
+            position: relative; z-index: 10;
+            border-top: 1px solid var(--border);
+            padding: 32px 60px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .footer-copy {
+            font-family: var(--mono);
+            font-size: 11px;
+            color: var(--muted);
+            letter-spacing: 0.05em;
+        }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ── Responsive ──────────────────────────────── */
+        @media (max-width: 900px) {
+            nav, .stats-bar, .hero { padding: 24px; margin: 0; }
+            .hero { grid-template-columns: 1fr; gap: 48px; min-height: auto; padding-top: 48px; }
+            .hero-right { display: none; }
+            .steps-grid { grid-template-columns: 1fr; }
+            .stats-bar { grid-template-columns: 1fr; margin: 0; }
+            .stat-item { border-right: none; border-bottom: 1px solid var(--border); }
+            .how-section, .ref-section { padding: 0 24px; }
+            footer { padding: 24px; flex-direction: column; gap: 12px; text-align: center; }
+        }
+    </style>
 </head>
+<body>
 
-<body class="landing">
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
 
-<div class="overlay">
-    <div class="landing-box">
-        <h1>SP06 AI Resistor Value Estimator</h1>
-        <p>Intelligent resistor color band detection using image processing and computer vision.</p>
+<!-- NAV -->
+<nav>
+    <div class="logo">Resistor<span>//</span>Scan</div>
+    <div class="nav-tag">SP06 · CV Project</div>
+</nav>
 
-        <a href="/app">
-            <button>Launch Application</button>
-        </a>
+<!-- HERO -->
+<section class="hero">
+    <div class="hero-left">
+        <div class="kicker">Computer Vision · HSV Analysis</div>
+        <h1>Read resistors<br>in <em>seconds</em>.</h1>
+        <p class="hero-desc">
+            Upload a photo of any 4-band or 5-band resistor.
+            Our image processing pipeline detects color bands automatically
+            and calculates resistance with tolerance.
+        </p>
+        <div class="cta-group">
+            <a href="/app" class="btn-primary">
+                <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                Launch Detector
+            </a>
+            <a href="#how" class="btn-secondary">How it works →</a>
+        </div>
+    </div>
+
+    <div class="hero-right">
+        <div class="resistor-showcase">
+            <div class="showcase-label">Live Preview — 4.7 kΩ Resistor</div>
+            <div class="r-body">
+                <div class="r-wire"></div>
+                <div class="r-capsule">
+                    <div class="r-band anim" style="background:#FDD835;"></div>
+                    <div class="r-band anim" style="background:#7B3F00;"></div>
+                    <div class="r-band anim" style="background:#e53935;"></div>
+                    <div class="r-band anim" style="background:#FFD700;"></div>
+                </div>
+                <div class="r-wire right"></div>
+            </div>
+            <div class="r-value">4.7 kΩ ±5%</div>
+            <div class="features">
+                <div class="feat-pill"><span class="dot"></span> HSV Detection</div>
+                <div class="feat-pill"><span class="dot"></span> Auto-Calibrated</div>
+                <div class="feat-pill"><span class="dot"></span> 4 & 5 Band</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- STATS -->
+<div class="stats-bar">
+    <div class="stat-item">
+        <div class="stat-num">12</div>
+        <div class="stat-label">Colors Recognized</div>
+    </div>
+    <div class="stat-item">
+        <div class="stat-num">4–5</div>
+        <div class="stat-label">Band Support</div>
+    </div>
+    <div class="stat-item">
+        <div class="stat-num">HSV</div>
+        <div class="stat-label">Color Space Analysis</div>
     </div>
 </div>
+
+<!-- HOW IT WORKS -->
+<section class="how-section" id="how">
+    <div class="section-label">Methodology</div>
+    <h2 class="section-title">How it works</h2>
+    <div class="steps-grid">
+        <div class="step-card">
+            <div class="step-num">01</div>
+            <span class="step-icon">📷</span>
+            <div class="step-title">Upload Image</div>
+            <p class="step-desc">Provide a clear photo of your resistor. The system accepts PNG, JPG, and JPEG formats.</p>
+        </div>
+        <div class="step-card">
+            <div class="step-num">02</div>
+            <span class="step-icon">🔬</span>
+            <div class="step-title">HSV Analysis</div>
+            <p class="step-desc">OpenCV converts the image to HSV color space and applies per-color masks with morphological cleanup to isolate bands.</p>
+        </div>
+        <div class="step-card">
+            <div class="step-num">03</div>
+            <span class="step-icon">⚡</span>
+            <div class="step-title">Calculate & Output</div>
+            <p class="step-desc">Detected bands are sorted by x-position and fed into the resistance formula. Manual correction is available.</p>
+        </div>
+    </div>
+</section>
+
+<!-- COLOR REFERENCE -->
+<section class="ref-section">
+    <div class="section-label">Reference</div>
+    <h2 class="section-title">Color band chart</h2>
+    <table class="color-table">
+        <thead>
+            <tr>
+                <th>Color</th>
+                <th>Digit (1st/2nd)</th>
+                <th>Multiplier</th>
+                <th>Tolerance</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr><td><span class="color-swatch" style="background:#1a1a1a"></span>Black</td><td>0</td><td>×1</td><td>—</td></tr>
+            <tr><td><span class="color-swatch" style="background:#7B3F00"></span>Brown</td><td>1</td><td>×10</td><td>±1%</td></tr>
+            <tr><td><span class="color-swatch" style="background:#e53935"></span>Red</td><td>2</td><td>×100</td><td>±2%</td></tr>
+            <tr><td><span class="color-swatch" style="background:#FB8C00"></span>Orange</td><td>3</td><td>×1 kΩ</td><td>—</td></tr>
+            <tr><td><span class="color-swatch" style="background:#FDD835"></span>Yellow</td><td>4</td><td>×10 kΩ</td><td>—</td></tr>
+            <tr><td><span class="color-swatch" style="background:#43A047"></span>Green</td><td>5</td><td>×100 kΩ</td><td>±0.5%</td></tr>
+            <tr><td><span class="color-swatch" style="background:#1E88E5"></span>Blue</td><td>6</td><td>×1 MΩ</td><td>±0.25%</td></tr>
+            <tr><td><span class="color-swatch" style="background:#8E24AA"></span>Violet</td><td>7</td><td>×10 MΩ</td><td>±0.1%</td></tr>
+            <tr><td><span class="color-swatch" style="background:#757575"></span>Grey</td><td>8</td><td>×100 MΩ</td><td>±0.05%</td></tr>
+            <tr><td><span class="color-swatch" style="background:#F5F5F5"></span>White</td><td>9</td><td>×1 GΩ</td><td>—</td></tr>
+            <tr><td><span class="color-swatch" style="background:#FFD700"></span>Gold</td><td>—</td><td>×0.1</td><td>±5%</td></tr>
+            <tr><td><span class="color-swatch" style="background:#C0C0C0"></span>Silver</td><td>—</td><td>×0.01</td><td>±10%</td></tr>
+        </tbody>
+    </table>
+</section>
+
+<footer>
+    <div class="footer-copy">© SP06 · Resistor Detection System · Computer Vision Project</div>
+    <div class="footer-copy">Built with OpenCV + Flask</div>
+</footer>
 
 </body>
 </html>

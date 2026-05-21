@@ -1,49 +1,20 @@
-body{
-    margin:0;
-    font-family:Arial, sans-serif;
+/*
+ * ResistorScan — Base styles
+ * All primary styles are inline in home.html and index.html
+ * This file is kept for compatibility.
+ */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+    --bg:     #0a0a0f;
+    --accent: #00e5a0;
+    --text:   #e8e8f0;
+    --muted:  #6b6b80;
 }
 
-.landing{
-    height:100vh;
-    background-image:url("/static/images/resistor-bg.jpg");
-    background-size:cover;
-    background-position:center;
-}
-
-.overlay{
-    height:100vh;
-    background:rgba(0,0,0,0.65);
-    display:flex;
-    justify-content:center;
-    align-items:center;
-}
-
-.landing-box{
-    width:700px;
-    background:rgba(255,255,255,0.15);
-    padding:60px;
-    border-radius:25px;
-    text-align:center;
-    color:white;
-    box-shadow:0 0 30px rgba(0,0,0,0.5);
-}
-
-.landing-box h1{
-    color:white;
-    font-size:48px;
-}
-
-.landing-box p{
-    font-size:22px;
-    margin-bottom:30px;
-}
-
-button{
-    background:#00b894;
-    color:white;
-    border:none;
-    padding:16px 35px;
-    border-radius:10px;
-    font-size:20px;
-    cursor:pointer;
+body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', 'Segoe UI', sans-serif;
 }
